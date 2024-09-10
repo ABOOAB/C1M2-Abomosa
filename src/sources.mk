@@ -14,7 +14,7 @@ ifeq ($(PLATFORM), MSP432)
         SOURCES = *.c 
 
         # specify the includes directory
-        INCLUDES_DIR = $(home)/week2/includes
+        INCLUDES_DIR = $(home)/c1m2-Abomosa/includes
 
         # Add your include paths to this variable
         INCLUDES = $(shell find $(INCLUDES-DIR) -type f)
@@ -22,8 +22,8 @@ else
         SOURCES = main.c \
                   memory.c
 
-        INCLUDES = ../includes/common/memorey.h \
-                   ../includes/common/platform.h
+        INCLUDES = ../include/common/memorey.h \
+                   ../include/common/platform.h
 
 endif
 
