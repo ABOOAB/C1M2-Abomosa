@@ -11,21 +11,32 @@
 
 # Add your Source files to this variable
 ifeq ($(PLATFORM), MSP432)
-        SOURCES = *.c 
+        SOURCES = interrupts_msp432p401r_gcc.c \
+                  main.c \
+                  memory.c \
+                  startup_msp432p401r_gcc.c \
+                  system_msp432p401r.c 
 
-        # specify the includes directory
-        INCLUDES_DIR = $(home)/c1m2-Abomosa/includes
+        INCLUDES = ../include/CMSIS/cmsis_gcc.h \
+                   ../include/CMSIS/core_cm4.h \
+                   ../include/CMSIS/core_cmFunc.h \
+                   ../include/CMSIS/core_cmInstr.h \
+                   ../include/CMSIS/core_cmSimd.h \
+                   ../include/common/memory.h \
+                   ../include/common/platform.h \
+                   ../include/msp432/msp432p401r.h \
+                   ../include/msp432/msp_compatibility.h \
+                   ../include/msp432/system_msp432p401r.h 
 
-        # Add your include paths to this variable
-        INCLUDES = $(shell find $(INCLUDES-DIR) -type f)
+        
 else
         SOURCES = main.c \
                   memory.c
 
-        INCLUDES = ../include/common/memorey.h \
+        INCLUDES = ../include/common/memory.h \
                    ../include/common/platform.h
 
-endif
 
+endif
 
 

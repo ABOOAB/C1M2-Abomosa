@@ -18,7 +18,7 @@
 #      <Put a description of the supported targets here>
 #
 # Platform Overrides:
-#      <Put a description of the supported Overrides here
+#      <Put a description of the supported Overrides here>
 #
 #------------------------------------------------------------------------------
 include sources.mk
@@ -27,72 +27,59 @@ include sources.mk
 PLATFORM =  
 TARGET = c1m2
 COMMON_FLAGS = -Wall -Werror -g -O0 -std=c99 
+
 # Architectures Specific Flags
 ifeq ($(PLATFORM), msp432)
-        LINKER_FILE = ../msp432p401r.lds
-        CPU = cortex-m4 
-        ARCH = armv7e-m
-        SPECS = nosys.specs
-
+    LINKER_FILE = ../msp432p401r.lds
+    CPU = cortex-m4 
+    ARCH = armv7e-m
+    SPECS = nosys.specs
+    CC = arm-none-eabi-gcc 
+    LD = arm-none-eabi-ld
+    CFLAGS = -mcpu=$(CPU) -march=$(ARCH) --specs=$(SPECS) -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
+              $(COMMON_FLAGS)
+    CPPFLAGS = -M -MF test.d
+    PLATFORM_FLAG = -DMSP432
 else
-        CPU = x86_64
-        ARCH := $(shell arch)
-
+    CC = gcc
+    LD = ld
+    CFLAGS = $(COMMON_FLAGS)
+    CPPFLAGS = -M -MF test2.d
+    PLATFORM_FLAG = -DHOST
 endif
 
-# Compiler Flags and Defines
-ifeq ($(PLATFORM), MSP432)
-        CC = arm-none-eabi-gcc 
-        LD = arm-none-eabi-ld
-        LDFLAGS = -Wl,-Map=$(TARGET).map,-T $(LINKER_FILE)
-        CFLAGS = -mcpu=$(CPU) -march=$(ARCH) --specs=$(SPECS) -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                  $(COMMON_FLAGS)
-        CPPFLAGS = -M -MF test.d
-        PLATFORM_FLAG = -DMSP432
+# Compiler and Linker Flags
+LDFLAGS = -Wl,-Map=$(TARGET).map 
 
-else
-        CC = gcc
-        LDFLAGS = -Wl,-Map=$(TARGET).map 
-        CFLAGS = $(COMMON_FLAGS)
-        CPPFLAGS = -M -MF test2.d
-        PLATFORM_FLAG = -DHOST
-endif
-
-#declared variables for every kind of files
+# File Extensions and Variables
 OBJS := $(SOURCES:.c=.o)
 ASMS := $(SOURCES:.c=.s)
 PPS := $(SOURCES:.c=.i)
 MAPS := $(SOURCES:.c=.map)
-OUTS := $(SOURCES:.c=.out)
+OUTS := $(TARGET).out
 
-
+# Rules
 %.i : %.c
-        $(CC) $(CFLAGS) $(PLATFORM_FLAG) -E -o $@ $<
+	$(CC) $(CFLAGS) $(PLATFORM_FLAG) -E -o $@ $<
 
-
-%.asm : %.c
-        $(CC) $(PLATFORM_FLAG) $(CFLAGS) -S $<
-        objdump $(OBJS) -D
-
+%.s : %.c
+	$(CC) $(CFLAGS) $(PLATFORM_FLAG) -S $< -o $@
 
 %.o : %.c
-        $(CC) $(PLATFORM_FLAG) $(CFLAGS) -c $< -o $@
-
+	$(CC) $(CFLAGS) $(PLATFORM_FLAG) -c $< -o $@
 
 .PHONY: compile-all
 compile-all: $(OBJS)
-        $(CC) $(PLATFORM_FLAG) $(CFLAGS) -c $(SOURCES)
-
-
+	@echo "Compiling all source files..."
+	$(CC) $(CFLAGS) $(PLATFORM_FLAG) -c $(SOURCES)
 
 .PHONY: build
 build: $(OUTS)
-$(OUTS) : $(SOURCES)
-        $(CC) $(PLATFORM_FLAG) $(CFLAGS) $(LDFLAGS) -o $(TARGET).out $^
-        size $(TARGET).out
+
+$(OUTS): $(OBJS)
+	$(CC) $(CFLAGS) $(PLATFORM_FLAG) $(LDFLAGS) -o $(OUTS) $(OBJS)
+	size $(OUTS)
 
 .PHONY: clean
 clean: 
-        rm -f *.i *.s *.o *.out *.d *.map
-        #rm -f $(OBJS) $(PPS) $(MAPS) $(OUTS) $(ASMS)
-
+	rm -f *.i *.s *.o *.out *.d *.map
