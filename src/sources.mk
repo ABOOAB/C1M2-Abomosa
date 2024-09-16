@@ -10,21 +10,23 @@
 #*****************************************************************************
 
 # Add your Source files to this variable
+
 SOURCES =
 ifeq ($(PLATFORM), MSP432)
-        SOURCES = *.c 
-
-        # specify the includes directory
-        INCLUDES_DIR = $(home)/week2/includes
+	SOURCES = interrupts_msp432p401r_gcc.c \
+                  main.c \
+                  memory.c \
+                  startup_msp432p401r_gcc.c \
+                  system_msp432p401r.c
 
         # Add your include paths to this variable
-        INCLUDES = $(shell find $(INCLUDES-DIR) -type f)
+	INCLUDES = -I../include/CMSIS \
+                   -I../include/common \
+                   -I../include/msp432
 else
-        SOURCES = main.c \
+	SOURCES = main.c \
                   memory.c
 
-        INCLUDES = ../includes/common/memorey.h \
-                   ../includes/common/platform.h
-
+	INCLUDES = -I../include/common 
 endif
 

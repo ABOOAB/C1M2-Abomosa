@@ -15,71 +15,91 @@
 # Use: make [TARGET] [PLATFORM-OVERRIDES]
 #
 # Build Targets:
-#      <Put a description of the supported targets here>
+#	  <Put a description of the supported targets here>
 #
 # Platform Overrides:
-#      <Put a description of the supported Overrides here>
+#	  <Put a description of the supported Overrides here>
 #
 #------------------------------------------------------------------------------
 include sources.mk
 
 # Platform Overrides
-PLATFORM =  
-TARGET = c1m2
-COMMON_FLAGS = -Wall -Werror -g -O0 -std=c99 
+PLATFORM ?= DEFAULT 
+TARGET = c1m2 
 
-# Architectures Specific Flags
-ifeq ($(PLATFORM), msp432)
-    LINKER_FILE = ../msp432p401r.lds
-    CPU = cortex-m4 
-    ARCH = armv7e-m
-    SPECS = nosys.specs
-    CC = arm-none-eabi-gcc 
-    LD = arm-none-eabi-ld
-    CFLAGS = -mcpu=$(CPU) -march=$(ARCH) --specs=$(SPECS) -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-              $(COMMON_FLAGS)
-    CPPFLAGS = -M -MF test.d
-    PLATFORM_FLAG = -DMSP432
-else
-    CC = gcc
-    LD = ld
-    CFLAGS = $(COMMON_FLAGS)
-    CPPFLAGS = -M -MF test2.d
-    PLATFORM_FLAG = -DHOST
+# compiler flags
+CFLAGS := -Wall -Werror -g -O0 -std=c99 $(INCLUDES) 
+LDFLAGS := -Wl,-Map=$(TARGET).map
+# CPPFLAGS
+
+ifeq ($(PLATFORM), MSP432)
+	# Architectures Specific Flags for MSP432
+	LINKER_FILE = ../msp432p401r.lds
+	CPU = cortex-m4
+	ARCH = armv7e-m
+	SPECS = nosys.specs
+	CC = arm-none-eabi-gcc
+	LD = arm-none-eabi-ld
+	LDFLAGS += -T $(LINKER_FILE)
+	CFLAGS += -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+	DEFINEFLAG = -DMSP432
+else 
+	CC = gcc	
+	DEFINEFLAG = -DHOST
 endif
 
-# Compiler and Linker Flags
-LDFLAGS = -Wl,-Map=$(TARGET).map 
-
-# File Extensions and Variables
+# More Declared Variables
 OBJS := $(SOURCES:.c=.o)
-ASMS := $(SOURCES:.c=.s)
+ASMS := $(SOURCES:.c=.asm)
 PPS := $(SOURCES:.c=.i)
 MAPS := $(SOURCES:.c=.map)
 OUTS := $(TARGET).out
 
-# Rules
-%.i : %.c
-	$(CC) $(CFLAGS) $(PLATFORM_FLAG) -E -o $@ $<
+# Rule to generate .i files
+%.i: %.c
+	@echo "Generating .i file for $<"
+	@$(CC) $(DEFINEFLAG) $(CFLAGS) -E -o $@ $<	
 
-%.s : %.c
-	$(CC) $(CFLAGS) $(PLATFORM_FLAG) -S $< -o $@
+# Rule to generate .asm files
+%.asm: %.c
+	@echo "Generating .asm file for $<"
+	@$(CC) $(DEFINEFLAG) $(CFLAGS) -S -o $@ $<
 
-%.o : %.c
-	$(CC) $(CFLAGS) $(PLATFORM_FLAG) -c $< -o $@
 
+# Rule to generate .asm file for the final executable
+$(TARGET).asm: $(TARGET).out
+	@echo "Generating .asm file for $(TARGET)"
+	@objdump -d $(TARGET).out > $(TARGET).asm
+
+%.o : %.c 
+	@echo "genrating .o files withour linking"
+	@$(CC) $(DEFINEFLAG) $(CFLAGS) -c $<  -o $@ 
+
+# Phony target for compiling all .c files into .o files
 .PHONY: compile-all
 compile-all: $(OBJS)
-	@echo "Compiling all source files..."
-	$(CC) $(CFLAGS) $(PLATFORM_FLAG) -c $(SOURCES)
+	@echo "Compiling all source files into object files without linking."
 
-.PHONY: build
-build: $(OUTS)
+# Phony target for building the executable
+.PHONY: Build
+Build: $(TARGET).out
 
-$(OUTS): $(OBJS)
-	$(CC) $(CFLAGS) $(PLATFORM_FLAG) $(LDFLAGS) -o $(OUTS) $(OBJS)
-	size $(OUTS)
+# Rule to build the executable
+$(TARGET).out: $(OBJS)
+	@echo "Linking object files into executablet"
+	@$(CC) $(DEFINEFLAG) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $(TARGET).out
 
+
+# Phony target for cleaning up all non-source files
 .PHONY: clean
-clean: 
-	rm -f *.i *.s *.o *.out *.d *.map
+clean:
+	@echo "Cleaning up all non-source files ..."
+	@rm -f $(OBJS) $(PPS) $(ASMS) $(MAPS) $(OUTS) $(TARGET).asm 
+
+
+
+
+
+
+
+
