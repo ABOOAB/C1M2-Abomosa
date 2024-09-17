@@ -27,28 +27,7 @@
 #	    This makefile supports 2 platforms: the host linux machine, and the MSP432 microcontroller.
 #
 #------------------------------------------------------------------------------
-
-
-SOURCES =
-ifeq ($(PLATFORM), MSP432)
-	SOURCES = interrupts_msp432p401r_gcc.c \
-				  main.c \
-				  memory.c \
-				  startup_msp432p401r_gcc.c \
-				  system_msp432p401r.c
-
-		# Add your include paths to this variable
-	INCLUDES = -I../include/CMSIS \
-				   -I../include/common \
-				   -I../include/msp432
-else
-	SOURCES = main.c \
-				  memory.c
-
-	INCLUDES = -I../include/common 
-endif
-
-# include sources.mk
+include sources.mk
 
 # Platform Overrides
 PLATFORM ?= DEFAULT 
