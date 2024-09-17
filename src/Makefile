@@ -10,18 +10,45 @@
 #*****************************************************************************
 
 #------------------------------------------------------------------------------
-# <Put a Description Here>
+# make file support two platforms (the host machine and MSP432)
 #
 # Use: make [TARGET] [PLATFORM-OVERRIDES]
 #
 # Build Targets:
-#	  <Put a description of the supported targets here>
-#
+#  
+#	<FILE>.o - Builds <FILE>.o object file
+#	<FILE>.asm - Builds <FILE>.asm assimply file
+#	<FILE>.i - Builds <FILE>.i preprocessed file
+#	<FILE>.o - Builds <FILE>.o object file
+#	Build - Builds and links all source files and produce the excutable
+#	compile-all - compile all files without linking
+#	clean - removes all generated files
 # Platform Overrides:
-#	  <Put a description of the supported Overrides here>
+#	    This makefile supports 2 platforms: the host linux machine, and the MSP432 microcontroller.
 #
 #------------------------------------------------------------------------------
-include sources.mk
+
+
+SOURCES =
+ifeq ($(PLATFORM), MSP432)
+	SOURCES = interrupts_msp432p401r_gcc.c \
+				  main.c \
+				  memory.c \
+				  startup_msp432p401r_gcc.c \
+				  system_msp432p401r.c
+
+		# Add your include paths to this variable
+	INCLUDES = -I../include/CMSIS \
+				   -I../include/common \
+				   -I../include/msp432
+else
+	SOURCES = main.c \
+				  memory.c
+
+	INCLUDES = -I../include/common 
+endif
+
+# include sources.mk
 
 # Platform Overrides
 PLATFORM ?= DEFAULT 
@@ -30,7 +57,6 @@ TARGET = c1m2
 # compiler flags
 CFLAGS := -Wall -Werror -g -O0 -std=c99 $(INCLUDES) 
 LDFLAGS := -Wl,-Map=$(TARGET).map
-# CPPFLAGS
 
 ifeq ($(PLATFORM), MSP432)
 	# Architectures Specific Flags for MSP432
@@ -41,7 +67,7 @@ ifeq ($(PLATFORM), MSP432)
 	CC = arm-none-eabi-gcc
 	LD = arm-none-eabi-ld
 	LDFLAGS += -T $(LINKER_FILE)
-	CFLAGS += -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+	CFLAGS += -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=soft  
 	DEFINEFLAG = -DMSP432
 else 
 	CC = gcc	
@@ -52,7 +78,7 @@ endif
 OBJS := $(SOURCES:.c=.o)
 ASMS := $(SOURCES:.c=.asm)
 PPS := $(SOURCES:.c=.i)
-MAPS := $(SOURCES:.c=.map)
+MAPS := $(TARGET).map
 OUTS := $(TARGET).out
 
 # Rule to generate .i files
@@ -65,20 +91,13 @@ OUTS := $(TARGET).out
 	@echo "Generating .asm file for $<"
 	@$(CC) $(DEFINEFLAG) $(CFLAGS) -S -o $@ $<
 
-
-# Rule to generate .asm file for the final executable
-$(TARGET).asm: $(TARGET).out
-	@echo "Generating .asm file for $(TARGET)"
-	@objdump -d $(TARGET).out > $(TARGET).asm
-
 %.o : %.c 
-	@echo "genrating .o files withour linking"
-	@$(CC) $(DEFINEFLAG) $(CFLAGS) -c $<  -o $@ 
+	@echo "Generating .o files"
+	@$(CC) $(DEFINEFLAG) $(CFLAGS) -c $< -o $@ 
 
 # Phony target for compiling all .c files into .o files
 .PHONY: compile-all
 compile-all: $(OBJS)
-	@echo "Compiling all source files into object files without linking."
 
 # Phony target for building the executable
 .PHONY: Build
@@ -86,20 +105,12 @@ Build: $(TARGET).out
 
 # Rule to build the executable
 $(TARGET).out: $(OBJS)
-	@echo "Linking object files into executablet"
-	@$(CC) $(DEFINEFLAG) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $(TARGET).out
+	@echo "Linking object files into executable"
+	@$(CC) $(DEFINEFLAG) $(CFLAGS) $(LDFLAGS) -o $(TARGET).out $(OBJS)
 
 
 # Phony target for cleaning up all non-source files
 .PHONY: clean
 clean:
 	@echo "Cleaning up all non-source files ..."
-	@rm -f $(OBJS) $(PPS) $(ASMS) $(MAPS) $(OUTS) $(TARGET).asm 
-
-
-
-
-
-
-
-
+	@rm -f $(OBJS) $(PPS) $(ASMS) $(MAPS) $(OUTS) $(TARGET).asm
