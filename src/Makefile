@@ -34,8 +34,7 @@ PLATFORM ?= DEFAULT
 TARGET = c1m2 
 
 # compiler flags
-CFLAGS := -Wall -Werror -g -O0 -std=c99 $(INCLUDES) 
-LDFLAGS := -Wl,-Map=$(TARGET).map
+CFLAGS := -Wall -Werror -g -O0 -std=c99 $(INCLUDES) -MD -MP
 
 ifeq ($(PLATFORM), MSP432)
 	# Architectures Specific Flags for MSP432
@@ -45,7 +44,7 @@ ifeq ($(PLATFORM), MSP432)
 	SPECS = nosys.specs
 	CC = arm-none-eabi-gcc
 	LD = arm-none-eabi-ld
-	LDFLAGS += -T $(LINKER_FILE)
+	LDFLAGS := -Wl,-Map=$(TARGET).map -T $(LINKER_FILE)
 	CFLAGS += -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=soft  
 	DEFINEFLAG = -DMSP432
 else 
@@ -57,8 +56,10 @@ endif
 OBJS := $(SOURCES:.c=.o)
 ASMS := $(SOURCES:.c=.asm)
 PPS := $(SOURCES:.c=.i)
-MAPS := $(TARGET).map
-OUTS := $(TARGET).out
+MAPS:= $(SOURCES:.c=.map)
+OUTS:= $(SOURCES:.c=.out)
+DEPS := $(SOURCES:.c=.d)
+
 
 # Rule to generate .i files
 %.i: %.c
@@ -70,26 +71,30 @@ OUTS := $(TARGET).out
 	@echo "Generating .asm file for $<"
 	@$(CC) $(DEFINEFLAG) $(CFLAGS) -S -o $@ $<
 
+# @objdump c1m2.out -D
+
 %.o : %.c 
-	@echo "Generating .o files"
+	@echo "Generating .o files for $<"
 	@$(CC) $(DEFINEFLAG) $(CFLAGS) -c $< -o $@ 
+
 
 # Phony target for compiling all .c files into .o files
 .PHONY: compile-all
 compile-all: $(OBJS)
 
+
 # Phony target for building the executable
 .PHONY: Build
-Build: $(TARGET).out
+Build: $(OUTS)
 
-# Rule to build the executable
-$(TARGET).out: $(OBJS)
-	@echo "Linking object files into executable"
-	@$(CC) $(DEFINEFLAG) $(CFLAGS) $(LDFLAGS) -o $(TARGET).out $(OBJS)
-
+$(OUTS): $(SOURCES)
+	@echo "Linking object files into executable $(TARGET)"
+	@$(CC) $(DEFINEFLAG) $(CFLAGS) $(LDFLAGS) -o c1m2.out $^ 
+	@echo "Here is a build report of code size.. \n"
+	@size c1m2.out
 
 # Phony target for cleaning up all non-source files
 .PHONY: clean
 clean:
-	@echo "Cleaning up all non-source files ..."
-	@rm -f $(OBJS) $(PPS) $(ASMS) $(MAPS) $(OUTS) $(TARGET).asm
+	@echo "Cleaning up all non-source files ...\n"
+	@rm -f -r $(OBJS) $(PPS) $(ASMS) *.map  *.asm *.out.dSYM *.out *.d
