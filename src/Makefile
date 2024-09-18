@@ -37,11 +37,13 @@ TARGET = c1m2
 CFLAGS := -Wall -Werror -g -O0 -std=c99 $(INCLUDES) -MD -MP
 
 ifeq ($(PLATFORM), MSP432)
-	# Architectures Specific Flags for MSP432
+# Architectures Specific Flags for MSP432
 	LINKER_FILE = ../msp432p401r.lds
 	CPU = cortex-m4
 	ARCH = armv7e-m
 	SPECS = nosys.specs
+
+# compiler flags
 	CC = arm-none-eabi-gcc
 	LD = arm-none-eabi-ld
 	LDFLAGS := -Wl,-Map=$(TARGET).map -T $(LINKER_FILE)
@@ -77,11 +79,9 @@ DEPS := $(SOURCES:.c=.d)
 	@echo "Generating .o files for $<"
 	@$(CC) $(DEFINEFLAG) $(CFLAGS) -c $< -o $@ 
 
-
 # Phony target for compiling all .c files into .o files
 .PHONY: compile-all
 compile-all: $(OBJS)
-
 
 # Phony target for building the executable
 .PHONY: Build
